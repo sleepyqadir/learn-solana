@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 mod errors;
 mod instructions;
+use state::Instruction;
 pub mod state;
 
 use instructions::*;
@@ -20,5 +21,13 @@ pub mod multi_sig {
     ) -> Result<()> {
         ctx.accounts
             .initialize(threshold, owners, *ctx.bumps.get("multisig").unwrap())
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn create_transaction(
+        ctx: Context<CreateTransaction>,
+        instructions: Vec<Instruction>,
+    ) -> Result<()> {
+        ctx.accounts.initialize(instructions)
     }
 }

@@ -31,9 +31,7 @@ pub struct Transaction {
     pub multisig: Pubkey,
 
     pub instructions: Vec<Instruction>,
-
-    pub created_by: Pubkey,
-
+    
     pub approved: Vec<Option<u64>>,
 
     pub proposer: Pubkey,
