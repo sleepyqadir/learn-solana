@@ -21,4 +21,6 @@ pub enum ErrorCode {
     UniqueSigs,
     #[msg("Not enough members with the given threshold")]
     DuplicateMembers,
+    #[msg("Invalid References")]
+    InvalidReferences,
 }

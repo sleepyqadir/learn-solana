@@ -2,6 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import { MultiSig } from "../target/types/multi_sig";
 import { assert } from "chai";
+import { createMemoInstruction } from "@solana/spl-memo";
 
 async function newMultisigRpc(
   base: anchor.web3.Signer,
@@ -30,6 +31,31 @@ async function newMultisigRpc(
       base,
     ])
     .rpc(confirmOptions);
+}
+
+async function newTransactionAndApproveRpc(
+  instructions: [],
+  confirmOptions?: anchor.web3.ConfirmOptions,
+): Promise<any> {
+  // Refresh our data, so that we're sure we're using an up-to-date nonce.
+  await this.refreshWallet(confirmOptions?.commitment);
+
+  const multisigTransaction = this.nextTransactionAddress();
+  const newTransactionIx = await this.program.methods.newTransaction(
+    instructions
+  )
+    .accounts({
+      proposer: this.signer.publicKey,
+      multisigWallet: this.walletAddress,
+      transaction: multisigTransaction,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([this.signer])
+    .instruction();
+
+  const approveIx = await this.approveIx(multisigTransaction);
+  return await this.sendTx(
+    [newTransactionIx, approveIx], [this.signer], confirmOptions);
 }
 
 
@@ -148,4 +174,23 @@ describe("multi-sig", () => {
       throw e;
     }
   });
+
+  // it("User1 creates and approves a transaction on the new multisig wallet", async () => {
+
+  //   const ix = createMemoInstruction("hello world", [multisigWallet]);
+  //   const ix2 = createMemoInstruction("hi mom, I'm on the blockchain", [multisigWallet]);
+  //   const msigMember = await MultisigMember.newFromAddress(
+  //     acts.testUser1Keypair, multisigWallet, program);
+
+    
+
+  //   try {
+  //     const signature = await newTransactionAndApproveRpc([ix, ix2],
+  //       { commitment: "processed" });
+  //   } catch (e) {
+  //     console.log(e);
+  //     throw e;
+  //   }
+  // });
+
 });

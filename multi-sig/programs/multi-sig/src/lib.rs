@@ -30,4 +30,19 @@ pub mod multi_sig {
     ) -> Result<()> {
         ctx.accounts.initialize(instructions)
     }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn approve(ctx: Context<Approval>) -> Result<()> {
+        ctx.accounts.approve()
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn unapprove(ctx: Context<Approval>) -> Result<()> {
+        ctx.accounts.unapprove()
+    }
+
+    #[access_control(ctx.accounts.validate())]
+    pub fn execute(ctx: Context<Approval>) -> Result<()> {
+        ctx.accounts.execute(ctx.remaining_accounts)
+    }
 }
