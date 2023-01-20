@@ -3,6 +3,67 @@ import { Program } from "@project-serum/anchor";
 import { MultiSig } from "../target/types/multi_sig";
 import { assert } from "chai";
 
+async function newMultisigRpc(
+  base: anchor.web3.Signer,
+  payer: anchor.web3.Signer,
+  threshold: number,
+  members: anchor.web3.PublicKey[],
+  program: Program<MultiSig>,
+  confirmOptions?: anchor.web3.ConfirmOptions,
+): Promise<any> {
+  const multisigWallet = findMultisigWalletAddress(
+    base.publicKey,
+    program.programId,
+  );
+  return await program.methods.createMultisig(
+    threshold,
+    members,
+  )
+    .accounts({
+      base: base.publicKey,
+      payer: payer.publicKey,
+      multisig: multisigWallet,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([
+      payer,
+      base,
+    ])
+    .rpc(confirmOptions);
+}
+
+
+function findMultisigWalletAddress(
+  base: anchor.web3.PublicKey,
+  program: anchor.web3.PublicKey,
+): anchor.web3.PublicKey {
+  let [addr, _] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("MultisigWallet"),
+      base.toBuffer(),
+    ],
+    program,
+  );
+  return addr;
+}
+
+function findMultisigTransactionAddress(
+  multisigWallet: anchor.web3.PublicKey,
+  txNonce: anchor.BN,
+  program: anchor.web3.PublicKey,
+): anchor.web3.PublicKey {
+  let [addr, _] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("MultisigTransaction"),
+      multisigWallet.toBuffer(),
+      txNonce.toBuffer('le', 8),
+    ],
+    program,
+  );
+  return addr;
+}
+
+
 describe("multi-sig", () => {
   // Configure the client to use the local cluster.
 
@@ -11,115 +72,80 @@ describe("multi-sig", () => {
 
   const program = anchor.workspace.MultiSig as Program<MultiSig>;
 
-  it("should creata a multisig", async () => {
-    // Add your test here.
+  /// 1 SOL starting balance
+  const STARTING_BALANCE = 1_000_000_000;
 
-    const firstOwner = anchor.web3.Keypair.generate()
-    const secondOwner = anchor.web3.Keypair.generate()
-    const thirdOwner = anchor.web3.Keypair.generate()
-    const fourthOwner = anchor.web3.Keypair.generate()
+  // Some initialization variables to create the test multisig.
+  let baseKeypair = anchor.web3.Keypair.generate();
+  let firstOwner = anchor.web3.Keypair.generate();
+  let secondOwner = anchor.web3.Keypair.generate();
+  let thirdOwner = anchor.web3.Keypair.generate();
+  let actor = anchor.web3.Keypair.generate();
 
-    const multisig = anchor.web3.Keypair.generate()
+  let threshold = 2;
+  let owners = [
+    firstOwner.publicKey,
+    secondOwner.publicKey,
+    thirdOwner.publicKey
+  ];
 
-    const threshold = new anchor.BN(2)
+  let multisigWallet = findMultisigWalletAddress(
+    baseKeypair.publicKey,
+    program.programId,
+  );
 
-    const [multisigSigner, nonce] =
-      await anchor.web3.PublicKey.findProgramAddressSync(
-        [multisig.publicKey.toBuffer()],
-        program.programId
-      );
+  let multisigTransaction = findMultisigTransactionAddress(
+    multisigWallet,
+    new anchor.BN(0),
+    program.programId
+  );
 
-
-    const owners = [firstOwner.publicKey, secondOwner.publicKey, thirdOwner.publicKey, fourthOwner.publicKey]
-
-    await program.methods.creatMultisig(owners, threshold, nonce).accounts(
-      {
-        multisig: multisig.publicKey,
-      }
-    ).signers(
-      [multisig]
-    ).rpc()
-
-    let multisigAccount = await program.account.multisig.fetch(
-      multisig.publicKey
-    );
-
-    assert.strictEqual(multisigAccount.nonce, nonce);
-    assert.isTrue(multisigAccount.threshold.eq(new anchor.BN(2)));
-    assert.deepEqual(multisigAccount.owners, owners);
+  it("Cannot initialize multisig with invalid thresholds", async () => {
+    // Threshold of zero
+    let err = null;
+    try {
+      const signature = await newMultisigRpc(
+        baseKeypair,
+        actor,
+        0,
+        owners,
+        program,
+        { commitment: "processed" }
+      )
+    } catch (e) {
+      err = e;
+    }
+    assert.isNotNull(err);
+    // Threshold too high
+    err = null;
+    try {
+      const signature = await newMultisigRpc(
+        baseKeypair,
+        actor,
+        4,
+        owners,
+        program,
+        { commitment: "processed" }
+      )
+    } catch (e) {
+      err = e;
+    }
+    assert.isNotNull(err);
   });
 
-  it("should initialize a transaction", async () => {
-    // Add your test here.
-
-    const firstOwner = anchor.web3.Keypair.generate()
-    const secondOwner = anchor.web3.Keypair.generate()
-    const thirdOwner = anchor.web3.Keypair.generate()
-    const fourthOwner = anchor.web3.Keypair.generate()
-
-    const multisig = anchor.web3.Keypair.generate()
-
-    const threshold = new anchor.BN(2)
-
-    const [multisigSigner, nonce] =
-      await anchor.web3.PublicKey.findProgramAddressSync(
-        [multisig.publicKey.toBuffer()],
-        program.programId
-      );
-
-
-    const owners = [firstOwner.publicKey, secondOwner.publicKey, thirdOwner.publicKey, fourthOwner.publicKey]
-
-    await program.methods.creatMultisig(owners, threshold, nonce).accounts(
-      {
-        multisig: multisig.publicKey,
-      }
-    ).signers(
-      [multisig]
-    ).rpc()
-
-    let multisigAccount = await program.account.multisig.fetch(
-      multisig.publicKey
-    );
-
-    assert.strictEqual(multisigAccount.nonce, nonce);
-    assert.isTrue(multisigAccount.threshold.eq(new anchor.BN(2)));
-    assert.deepEqual(multisigAccount.owners, owners);
-
-    const transaction = anchor.web3.Keypair.generate()
-
-    const newOwners = [firstOwner.publicKey, secondOwner.publicKey]
-
-    const data = program.coder.instruction.encode("set_owners", { owners: newOwners })
-
-    console.log(data);
-
-    const _accounts = [
-      {
-        pubKey: multisig.publicKey,
-        isWritable: true,
-        isSigner: false,
-      },
-      {
-        pubKey: multisigSigner,
-        isWritable: false,
-        isSigner: true,
-      },
-    ];
-
-
-    await program.methods.createTransaction(program.programId, _accounts, data).accounts({
-      multisig: multisig.publicKey,
-      transaction: transaction.publicKey,
-      proposer: firstOwner.publicKey
-    }).signers(
-      [transaction, firstOwner]
-    ).rpc()
-
-
+  it("Initialize 2 of 3 multisig of members [User1, User2, User3])", async () => {
+    try {
+      const signature = await newMultisigRpc(
+        baseKeypair,
+        actor,
+        threshold,
+        owners,
+        program,
+        { commitment: "processed" }
+      )
+    } catch (e) {
+      console.log(e);
+      throw e;
+    }
   });
-
-
-
-
 });

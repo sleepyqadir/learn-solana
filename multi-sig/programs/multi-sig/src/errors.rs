@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::error_code;
 
 #[error_code]
 pub enum ErrorCode {
@@ -16,4 +17,8 @@ pub enum ErrorCode {
     AlreadyExecuted,
     #[msg("Threshold must be less than or equal to the number of owners.")]
     InvalidThreshold,
+    #[msg("Owners must be unique")]
+    UniqueSigs,
+    #[msg("Not enough members with the given threshold")]
+    DuplicateMembers,
 }
