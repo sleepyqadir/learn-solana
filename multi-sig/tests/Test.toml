@@ -1,0 +1,22 @@
+[[test.genesis]]
+address = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+program = "./programs/memo.so"
+
+[[test.validator.account]]
+address = "6mDtepLR4pX37GaH4ynUD3jAujtmtUAyFDrhmLPC3zCQ"
+filename = "./accounts/test_user1-state.json"
+
+[[test.validator.account]]
+address = "8jDRDgJ3asGF1WqwV2EXT6pmmEYqG8dvyAaobMeU82BR"
+filename = "./accounts/test_user2-state.json"
+
+[[test.validator.account]]
+address = "BKfr3G67vxeAQnS5m6hbBxpXXwqssNB1wqerdaoCuv8Q"
+filename = "./accounts/test_user3-state.json"
+
+[[test.validator.account]]
+address = "3Qab6sYG3kbzHXTF5Yr8h2waHeRMVzNZspvZ6JomUXPa"
+filename = "./accounts/test_user4-state.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ./tests/*.ts"
