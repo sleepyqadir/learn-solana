@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
-pub struct Multisig {
+pub struct MultisigWallet {
     pub base: Pubkey,
     pub owners: Vec<Pubkey>,
     pub threshold: u16,
@@ -9,9 +9,9 @@ pub struct Multisig {
     pub bump: u8,
 }
 
-impl Multisig {
+impl MultisigWallet {
     pub fn space(num_owners: usize) -> usize {
-        8 + 32 + 4 + 32 * num_owners + 8 + 8 + 1
+        8 + 32 + 4 + 32 * num_owners + 2 + 8 + 1
     }
 }
 
@@ -19,7 +19,7 @@ impl Multisig {
 macro_rules! gen_multisig_wallet_seeds {
     ($multisig_wallet:expr) => {
         &[
-            b"Multisig".as_ref(),
+            b"MultisigWallet".as_ref(),
             $multisig_wallet.base.as_ref(),
             &[$multisig_wallet.bump],
         ]
@@ -27,21 +27,21 @@ macro_rules! gen_multisig_wallet_seeds {
 }
 
 #[account]
-pub struct Transaction {
-    pub multisig: Pubkey,
-
+pub struct MultisigTransaction {
     pub instructions: Vec<Instruction>,
     
-    pub approved: Vec<Option<u64>>,
+    pub multisig_wallet: Pubkey,
 
+    pub approved: Vec<Option<i64>>,
+    
     pub proposer: Pubkey,
 
-    pub executer: Option<Pubkey>,
+    pub executor: Option<Pubkey>,
 
-    pub did_execute: bool,
+    pub executed: bool,
 }
 
-impl Transaction {
+impl MultisigTransaction {
     pub fn space(instructions: Vec<Instruction>, num_members: usize) -> usize {
         8 + 4 + (instructions
             .iter()

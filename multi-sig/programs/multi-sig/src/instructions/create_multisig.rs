@@ -1,22 +1,25 @@
 use crate::errors::ErrorCode;
-use crate::state::Multisig;
+use crate::state::MultisigWallet;
 use anchor_lang::prelude::*;
+use anchor_lang::prelude::{Account, Program, Signer, System};
+use solana_program::pubkey::Pubkey;
+
 #[derive(Accounts)]
-#[instruction(threshold: u64, owners: Vec<Pubkey>)]
+#[instruction(threshold: u16, owners: Vec<Pubkey>)]
 pub struct CreateMultisig<'info> {
     base: Signer<'info>,
 
     #[account(
         init,
         seeds = [
-            b"Multisig".as_ref(),
-            &base.key().as_ref(),
+            b"MultisigWallet".as_ref(),
+            &base.key().as_ref()
         ],
         bump,
         payer = payer,
-        space = Multisig::space(owners.len())
+        space = MultisigWallet::space(owners.len()),
     )]
-    multisig: Account<'info, Multisig>, // hold the program account of smart contract
+    multisig_wallet: Account<'info, MultisigWallet>,
 
     #[account(mut)]
     payer: Signer<'info>,
@@ -34,16 +37,14 @@ impl<'info> CreateMultisig<'info> {
         );
 
         let mut deduped = owners.clone();
-
+        
         deduped.dedup();
-
-        require!(owners.len() == deduped.len(), ErrorCode::DuplicateMembers);
-
+        require!(owners.len() == deduped.len(), ErrorCode::DuplicateOwners);
         Ok(())
     }
 
     pub fn initialize(&mut self, threshold: u16, owners: Vec<Pubkey>, bump: u8) -> Result<()> {
-        let msig = &mut self.multisig;
+        let msig = &mut self.multisig_wallet;
         msig.nonce = 0;
         msig.owners = owners.clone();
         msig.base = self.base.key();

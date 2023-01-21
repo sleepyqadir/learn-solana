@@ -9,18 +9,20 @@ use instructions::*;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
-pub mod multi_sig {
-
+pub mod multisig {
     use super::*;
 
-    #[access_control(ctx.accounts.validate(&threshold,&owners))]
+    #[access_control(ctx.accounts.validate(&threshold, &owners))]
     pub fn create_multisig(
         ctx: Context<CreateMultisig>,
         threshold: u16,
         owners: Vec<Pubkey>,
     ) -> Result<()> {
-        ctx.accounts
-            .initialize(threshold, owners, *ctx.bumps.get("multisig").unwrap())
+        ctx.accounts.initialize(
+            threshold,
+            owners,
+            *ctx.bumps.get("multisig_wallet").unwrap(),
+        )
     }
 
     #[access_control(ctx.accounts.validate())]

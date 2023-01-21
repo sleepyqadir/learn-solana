@@ -1,5 +1,5 @@
 use crate::errors::ErrorCode;
-use crate::state::{Instruction, Multisig, Transaction};
+use crate::state::{Instruction, MultisigTransaction, MultisigWallet};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -7,30 +7,28 @@ use anchor_lang::prelude::*;
 pub struct CreateTransaction<'info> {
     #[account(mut)]
     proposer: Signer<'info>,
-
     #[account(mut)]
-    multisig: Account<'info, Multisig>,
-
+    multisig_wallet: Account<'info, MultisigWallet>,
     #[account(
         init,
         seeds = [
-            b"Transaction".as_ref(),
-            &multisig.key().as_ref(),
-            &multisig.nonce.to_le_bytes().as_ref()
+            b"MultisigTransaction".as_ref(),
+            &multisig_wallet.key().as_ref(),
+            &multisig_wallet.nonce.to_le_bytes().as_ref(),
         ],
         bump,
         payer = proposer,
-        space = Transaction::space(instructions,multisig.owners.len())
+        space = MultisigTransaction::space(instructions, multisig_wallet.owners.len()),
     )]
-    transaction: Account<'info, Transaction>,
 
+    transaction: Account<'info, MultisigTransaction>,
     system_program: Program<'info, System>,
 }
 
 impl<'info> CreateTransaction<'info> {
     pub fn validate(&self) -> Result<()> {
         require!(
-            self.multisig.owners.contains(&self.proposer.key()),
+            self.multisig_wallet.owners.contains(&self.proposer.key()),
             ErrorCode::InvalidOwner
         );
         Ok(())
@@ -40,21 +38,21 @@ impl<'info> CreateTransaction<'info> {
         let tx = &mut self.transaction;
 
         tx.instructions = instructions;
-
-        tx.multisig = self.multisig.key();
-
+        tx.multisig_wallet = self.multisig_wallet.key();
+        
+        tx.approved = (0..self.multisig_wallet.owners.len())
+            .map(|_| None)
+            .collect();
+        
         tx.proposer = self.proposer.key();
+        
+        tx.executed = false;
+        
+        tx.executor = None;
 
-        tx.approved = (0..self.multisig.owners.len()).map(|_| None).collect();
-
-        tx.executer = None;
-
-        tx.did_execute = false;
-
-        let msig = &mut self.multisig;
-
+        let msig = &mut self.multisig_wallet;
+        
         msig.nonce += 1;
-
         Ok(())
     }
 }

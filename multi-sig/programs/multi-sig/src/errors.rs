@@ -19,8 +19,8 @@ pub enum ErrorCode {
     InvalidThreshold,
     #[msg("Owners must be unique")]
     UniqueSigs,
-    #[msg("Not enough members with the given threshold")]
-    DuplicateMembers,
+    #[msg("Not enough owners with the given threshold")]
+    DuplicateOwners,
     #[msg("Invalid References")]
     InvalidReferences,
 }
