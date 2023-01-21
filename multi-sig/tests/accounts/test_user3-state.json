@@ -1,0 +1,13 @@
+{
+  "account": {
+    "data": [
+      "",
+      "base58"
+    ],
+    "executable": false,
+    "lamports": 1000000000,
+    "owner": "11111111111111111111111111111111",
+    "rentEpoch": 0
+  },
+  "pubkey": "BKfr3G67vxeAQnS5m6hbBxpXXwqssNB1wqerdaoCuv8Q"
+}
